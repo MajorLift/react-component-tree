@@ -12,7 +12,8 @@ import { faInfoCircle, faArrowCircleRight, faStore } from '@fortawesome/free-sol
 import Tippy from '@tippy.js/react';
 import 'tippy.js/dist/tippy.css';
 
-const TreeNode = ({ node }: any) => {
+import { SerializedTree } from '../../types';
+const TreeNode = ({ node }: { node: SerializedTree }): JSX.Element => {
   // state variables for the users current active file and the expanded value (boolean) of the node
   const [currFile, setCurrFile] = useState(false);
   const [expanded, setExpanded] = useState(node.isExpanded);
