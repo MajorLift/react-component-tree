@@ -1,19 +1,22 @@
+import React, { useEffect, useState } from 'react';
 import { SerializedTree } from '../../types';
 
 // component imports
 import Navbar from './Navbar';
 import Tree from './Tree';
 
-const Sidebar = () => {
+const Sidebar = (): JSX.Element => {
   // state variables for the incomimg treeData, parsed viewData, user's settings, and the root file name
   const [treeData, setTreeData] = useState<SerializedTree[]>([]);
   const [viewData, setViewData] = useState<SerializedTree[]>([]);
+  const [settings, setSettings] = useState<{ thirdParty: boolean; reactRouter: boolean }>();
+  const [rootFile, setRootFile] = useState<string | undefined>();
 
   // useEffect whenever the Sidebar is rendered
   useEffect(() => {
     // Event Listener for 'message' from the extension
     window.addEventListener('message', (event) => {
-      const message = event.data;
+      const message = event.data as { type: string; value: unknown };
       switch (message.type) {
         // Listener to receive the tree data, update navbar and tree view
         case 'parsed-data': {
@@ -24,7 +27,7 @@ const Sidebar = () => {
         }
         // Listener to receive the user's settings
         case 'settings-data': {
-          setSettings(message.value);
+          setSettings(message.value as { thirdParty: boolean; reactRouter: boolean });
           break;
         }
       }
@@ -47,9 +50,9 @@ const Sidebar = () => {
   useEffect(() => {
     // Filters component tree nodes based on users settings
     if (treeData.length && settings) {
-    // Helper function for the recursive parsing
+      // Helper function for the recursive parsing
       const applySettings = (node: SerializedTree): SerializedTree => {
-      // Logic to parse the nodes based on the users settings
+        // Logic to parse the nodes based on the users settings
         return {
           ...node,
           children: node.children
@@ -60,8 +63,8 @@ const Sidebar = () => {
                 (!child.isThirdParty && !child.isReactRouter)
             )
             .map((child) => applySettings(child)),
-    };
-  };
+        };
+      };
       // Update the viewData state
       setViewData([applySettings(treeData[0])]);
     }

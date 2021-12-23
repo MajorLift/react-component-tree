@@ -1,8 +1,5 @@
-import * as React from 'react';
-import { useState, useEffect } from 'react';
-
-// import tree for recursive calls
-import Tree from './Tree';
+/* eslint-disable jsx-a11y/anchor-is-valid */
+import React, { useState, useEffect, useMemo } from 'react';
 
 // imports for the icons
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -13,6 +10,10 @@ import Tippy from '@tippy.js/react';
 import 'tippy.js/dist/tippy.css';
 
 import { SerializedTree } from '../../types';
+
+// import tree for recursive calls
+import Tree from './Tree';
+
 const TreeNode = ({ node }: { node: SerializedTree }): JSX.Element => {
   // state variables for the users current active file and the expanded value (boolean) of the node
   const [currFile, setCurrFile] = useState(false);
@@ -21,7 +22,7 @@ const TreeNode = ({ node }: { node: SerializedTree }): JSX.Element => {
   // useEffect that will add an event listener for 'message' to each node, in order to show which file the user is currently working in
   useEffect(() => {
     window.addEventListener('message', (event) => {
-      const message = event.data;
+      const message = event.data as { type: 'current-tab'; value: string };
       switch (message.type) {
         case 'current-tab': {
           // If the current node's filePath is the same as the user's current actie window, change state to true, else, change state to false

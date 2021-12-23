@@ -1,3 +1,4 @@
+import React from 'react';
 import { SerializedTree } from '../../types';
 
 // import for the nodes
