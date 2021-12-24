@@ -39,36 +39,7 @@ const TreeNode = ({ node }: { node: SerializedTree }): JSX.Element => {
       type: 'onBoldCheck',
       value: null,
     });
-  }, []);
-
-  // Function that will capture the file path of the current node clicked on + send a message to the extension
-  const viewFile = () => {
-    // Edge case to verify that there is in fact a file path for the current node
-    if (node.filePath) {
-      tsvscode.postMessage({
-        type: 'onViewFile',
-        value: node.filePath,
-      });
-    }
-  };
-
-  // Function that generates the props for each node
-  const propsGenerator = () => {
-    // Case when there are no props present on the node
-    if (Object.keys(node.props).length === 0) {
-      return <p>None</p>;
-    }
-    // Case when there are props to loop through on the node
-    return Object.keys(node.props).map((prop) => {
-      return <p>{prop}</p>;
-    });
-  };
-
-  // Variable that holds the props that will be fed into the tooltip (Tippy)
-  const propsList = propsGenerator();
-
-  // Variable that holds the logic of whether the current node has children or not
-  const child = node.children.length > 0 ? true : false;
+  }, [node.filePath]);
 
   // onClick method for each node that will change the expanded/collapsed structure + send a message to the extension
   const toggleNode = () => {
@@ -83,11 +54,72 @@ const TreeNode = ({ node }: { node: SerializedTree }): JSX.Element => {
 
   const classString = 'tree_label' + (node.error ? ' node_error' : '');
 
+  // Props, Redux, Select ViewFile Icons
+  // useMemo ensures that icons don't re-render on every node state change.
+  const FileNodeIcons = useMemo((): JSX.Element => {
+    // Function that will capture the file path of the current node clicked on + send a message to the extension
+    const viewFile = () => {
+      // Edge case to verify that there is in fact a file path for the current node
+      if (node.filePath) {
+        tsvscode.postMessage({
+          type: 'onViewFile',
+          value: node.filePath,
+        });
+      }
+    };
+    // Function that generates the props for each node
+    const propsGenerator = () => {
+      // Case when there are no props present on the node
+      if (Object.keys(node.props).length === 0) {
+        return <p>None</p>;
+      }
+      // Case when there are props to loop through on the node
+      return Object.keys(node.props).map((prop) => {
+        return <p key={Math.floor(Math.random() * 100)}>{prop}</p>;
+      });
+    };
+    // Variable that holds the props that will be fed into the tooltip (Tippy)
+    const propsList = propsGenerator();
+
+    return (
+      <>
+        {node.hasReduxConnect ? (
+          <Tippy
+            content={
+              <p>
+                <strong>Connected to Redux Store</strong>
+              </p>
+            }
+          >
+            <a className="redux_connect" href="">
+              <FontAwesomeIcon icon={faStore} />
+            </a>
+          </Tippy>
+        ) : null}
+        <Tippy
+          content={
+            <p>
+              <strong>Props available:</strong>
+              {propsList}
+            </p>
+          }
+        >
+          <a className="node_icons" href="">
+            <FontAwesomeIcon icon={faInfoCircle} />
+          </a>
+        </Tippy>
+        <a className="node_icons" href="" onClick={viewFile}>
+          <FontAwesomeIcon icon={faArrowCircleRight} />
+        </a>
+      </>
+    );
+  }, [node.filePath, node.props, node.hasReduxConnect]);
+
   // Render section
   return (
     <>
       {/* Conditional to check whether there are children or not on the current node */}
-      {child ? (
+      {node.children.length ? (
         <li>
           <input type="checkbox" checked={expanded} id={node.id} onClick={toggleNode} />
           {/* Checks for the user's current active file */}
@@ -100,39 +132,8 @@ const TreeNode = ({ node }: { node: SerializedTree }): JSX.Element => {
               {node.name}
             </label>
           )}
-          {/* Checks to make sure there are no thirdParty or reactRouter node_icons */}
-          {!node.isThirdParty && !node.isReactRouter ? (
-            <>
-              {node.hasReduxConnect ? (
-                <Tippy
-                  content={
-                    <p>
-                      <strong>Connected to Redux Store</strong>
-                    </p>
-                  }
-                >
-                  <a className="redux_connect" href="">
-                    <FontAwesomeIcon icon={faStore} />
-                  </a>
-                </Tippy>
-              ) : null}
-              <Tippy
-                content={
-                  <p>
-                    <strong>Props available:</strong>
-                    {propsList}
-                  </p>
-                }
-              >
-                <a className="node_icons" href="">
-                  <FontAwesomeIcon icon={faInfoCircle} />
-                </a>
-              </Tippy>
-              <a className="node_icons" href="" onClick={viewFile}>
-                <FontAwesomeIcon icon={faArrowCircleRight} />
-              </a>
-            </>
-          ) : null}
+          {/* Checks whether node is file and displays props, redux, select active file icons */}
+          {!node.isThirdParty && !node.isReactRouter ? FileNodeIcons : null}
           <Tree data={node.children} first={false} />
         </li>
       ) : (
@@ -145,39 +146,8 @@ const TreeNode = ({ node }: { node: SerializedTree }): JSX.Element => {
           ) : (
             <span className={classString}>{node.name}</span>
           )}
-          {/* Checks to make sure there are no thirdParty or reactRouter node_icons */}
-          {!node.isThirdParty && !node.isReactRouter ? (
-            <>
-              {node.hasReduxConnect ? (
-                <Tippy
-                  content={
-                    <p>
-                      <strong>Connected to Redux Store</strong>
-                    </p>
-                  }
-                >
-                  <a className="redux_connect" href="">
-                    <FontAwesomeIcon icon={faStore} />
-                  </a>
-                </Tippy>
-              ) : null}
-              <Tippy
-                content={
-                  <p>
-                    <strong>Props available:</strong>
-                    {propsList}
-                  </p>
-                }
-              >
-                <a className="node_icons" href="">
-                  <FontAwesomeIcon icon={faInfoCircle} />
-                </a>
-              </Tippy>
-              <a className="node_icons" href="" onClick={viewFile}>
-                <FontAwesomeIcon icon={faArrowCircleRight} />
-              </a>
-            </>
-          ) : null}
+          {/* Checks whether node is file and displays props, redux, select active file icons */}
+          {!node.isThirdParty && !node.isReactRouter ? FileNodeIcons : null}
         </li>
       )}
     </>
