@@ -117,7 +117,7 @@ export class Tree {
    * Direct assignment of class fields using member expressions is not allowed.
    * @param key The class field to be modified.
    * @param value The value to be assigned.
-   * Defines unalterable class fields: 'id', 'name', ' fileName', 'filePath', 'importPath', 'parentId', 'parentList'.
+   * Defines unalterable class fields: 'isExpanded', 'id', 'name', ' fileName', 'filePath', 'importPath', 'parentId', 'parentList'.
    * Use for complete replacement of 'children', 'props' elements (for mutation, use array/object methods).
    */
   public set(key: keyof Tree, value: Tree[keyof Tree]): void {
@@ -142,11 +142,18 @@ export class Tree {
       throw new Error('Invalid input props object.');
     }
     if (
-      ['id', 'name', ' fileName', 'filePath', 'importPath', 'parentId', 'parentList'].includes(
-        key as string
-      )
+      [
+        'id',
+        'name',
+        'fileName',
+        'filePath',
+        'importPath',
+        'parentId',
+        'parentList',
+        'isExpanded',
+      ].includes(key as string)
     ) {
-      throw new Error(`Cannot alter readonly property: ${key}. Create new tree instead.`);
+      throw new Error(`Altering property ${key} is not allowed. Create new tree instance instead.`);
     } else this[`_${key}`] = value;
   }
 
@@ -194,6 +201,25 @@ export class Tree {
     }, this) as Tree;
   }
 
+  /** @returns Normalized array containing current node and all of its descendants. */
+  public get subtree(): Array<Tree> {
+    const descendants: Array<Tree> = [];
+    const callback = (node: Tree) => {
+      descendants.push(...node.children);
+    };
+    this.traverse(callback);
+    return [this, ...descendants];
+  }
+
+  /** Recursively applies callback on current node and all of its descendants. */
+  public traverse(callback: (node: Tree) => void): void {
+    callback(this);
+    if (!this.children || !this.children.length) return;
+    this.children.forEach((child) => {
+      child.traverse(callback);
+    });
+  }
+
   public isEmpty(): boolean {
     return !this.name.length || this.parentId === undefined;
   }
@@ -204,6 +230,55 @@ export class Tree {
 
   public isFile(): boolean {
     return !this.isThirdParty && !this.isReactRouter;
+  }
+
+  /** Switches isExpanded property state. */
+  public toggleExpanded(): void {
+    this._isExpanded = !this._isExpanded;
+  }
+
+  /** Finds subtree node and changes isExpanded property state.
+   * @param expandedState if not undefined, defines value of isExpanded property for target node.
+   * If expandedState is undefined, isExpanded property is negated.
+   */
+  public findAndToggleExpanded(id: string, expandedState?: boolean): void {
+    const target = this.get(id) as Tree | undefined;
+    if (target === undefined) throw new Error('Invalid input id.');
+    // If expandedState is undefined, predicate will always evaluate to true due to type difference.
+    if (target.isExpanded !== expandedState) target.toggleExpanded();
+  }
+
+  /** Triggers on file save event.
+   * Finds node(s) that match saved document's file path,
+   * reparses their subtrees to reflect updated document content,
+   * and restores previous isExpanded state for descendants.
+   */
+  public updateOnSave(savedFilePath: string): void {
+    const targetNodes = this.get(savedFilePath) as Array<Tree>;
+    if (!targetNodes.length) {
+      throw new Error('No nodes were found with file path: ' + savedFilePath);
+    }
+    targetNodes.forEach((target) => {
+      const prevState = target.subtree.map((node) => {
+        return { isExpanded: node.isExpanded, depth: node.depth, filePath: node.filePath };
+      });
+
+      // Subtree of target is newly parsed in-place.
+      SaplingParser.parse(target);
+
+      const restoreExpanded = (node: Tree): void => {
+        if (
+          node.isExpanded !==
+          prevState.some(
+            ({ isExpanded, depth, filePath }) =>
+              isExpanded && node.depth === depth && node.filePath === filePath
+          )
+        ) {
+          node.toggleExpanded();
+        }
+      };
+      target.traverse(restoreExpanded);
+    });
   }
 
   /** Recursively captures and exports internal state for all nested nodes.
@@ -237,72 +312,5 @@ export class Tree {
         children: node.children.map((child) => recurse(child)),
       });
     return recurse(data);
-  }
-
-  /** Switches isExpanded property state. */
-  private toggleExpanded(): void {
-    this.set('isExpanded', !this.isExpanded);
-  }
-
-  /** Finds subtree node and changes isExpanded property state.
-   * @param expandedState if not undefined, defines value of isExpanded property for target node.
-   * If expandedState is undefined, isExpanded property is negated.
-   */
-  public findAndToggleExpanded(id: string, expandedState?: boolean): void {
-    const target = this.get(id) as Tree | undefined;
-    if (target === undefined) throw new Error('Invalid input id.');
-    if (expandedState === undefined) target.toggleExpanded();
-    else target.set('isExpanded', expandedState);
-  }
-
-  /** Triggers on file save event.
-   * Finds node(s) that match saved document's file path,
-   * reparses their subtrees to reflect updated document content,
-   * and restores previous isExpanded state for descendants.
-   */
-  public updateOnSave(savedFilePath: string): void {
-    const targetNodes = this.get(savedFilePath) as Array<Tree>;
-    if (!targetNodes.length) {
-      throw new Error('No nodes were found with file path: ' + savedFilePath);
-    }
-    targetNodes.forEach((target) => {
-      const prevState = target.subtree.map((node) => {
-        const { depth, filePath, isExpanded } = node;
-        return { depth, filePath, isExpanded };
-      });
-
-      // Subtree of target is newly parsed in-place.
-      SaplingParser.parse(target);
-
-      const restoreExpanded = (node: Tree): void => {
-        node.set(
-          'isExpanded',
-          prevState.some(
-            ({ depth, filePath, isExpanded }) =>
-              isExpanded && node.depth === depth && node.filePath === filePath
-          )
-        );
-      };
-      target.traverse(restoreExpanded);
-    });
-  }
-
-  /** @returns Normalized array containing all descendants in subtree of current node. */
-  private get subtree(): Array<Tree> {
-    const descendants: Array<Tree> = [];
-    const callback = (node: Tree) => {
-      descendants.push(...node.children);
-    };
-    this.traverse(callback);
-    return [this, ...descendants];
-  }
-
-  // Traverses all nodes of current component tree and applies callback to each node
-  public traverse(callback: (node: Tree) => void): void {
-    callback(this);
-    if (!this.children || !this.children.length) return;
-    this.children.forEach((child) => {
-      child.traverse(callback);
-    });
   }
 }
