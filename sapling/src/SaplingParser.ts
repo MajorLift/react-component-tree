@@ -65,7 +65,7 @@ export class SaplingParser {
   }
 
   // Set a new entryFile for the parser (root of component hierarchy)
-  public setEntryFile(filePath: string) {
+  public setEntryFile(filePath: string): void {
     this.entryFile = filePathFixer(filePath);
   }
 
@@ -212,7 +212,7 @@ export class SaplingParser {
 
   // Method that extracts all aliases from tsconfig and webpack config files for parsing
   private updateAliases(): void {
-    const aliases = [];
+    const aliases: string[] = [];
     if (this.settings.tsConfig) {
       // Try to open tsConfig file, if error then alert user in webview:
       let tsConfig;
@@ -233,13 +233,13 @@ export class SaplingParser {
         tsConfig.compilerOptions &&
         tsConfig.compilerOptions.paths
       ) {
-        for (let key of Object.keys(tsConfig.compilerOptions.paths)) {
+        Object.keys(tsConfig.compilerOptions.paths).forEach((key) => {
           // Remove asterix from end of alias if present
           key = key[key.length - 1] === '*' ? key.slice(0, key.length - 1) : key;
           if (key) {
             aliases.push(key);
           }
-        }
+        });
       }
     }
 
@@ -252,12 +252,12 @@ export class SaplingParser {
         this.settings.webpackConfig = '';
       }
       if (typeof wpObj === 'object' && wpObj.resolve && wpObj.resolve.alias) {
-        for (let key of Object.keys(wpObj.resolve.alias)) {
+        Object.keys(wpObj.resolve.alias).forEach((key) => {
           key = key[key.length - 1] === '$' ? key.slice(0, key.length - 1) : key;
           if (key) {
             aliases.push(key);
           }
-        }
+        });
       }
     }
 
@@ -265,7 +265,7 @@ export class SaplingParser {
   }
 
   // Traverses all nodes of current component tree and applies callback to each node
-  private traverseTree(callback: Function, node: Tree | undefined = this.tree): void {
+  private traverseTree(callback: (node: Tree) => void, node: Tree | undefined = this.tree): void {
     if (!node) {
       return;
     }
@@ -282,14 +282,9 @@ export class SaplingParser {
     // If import is a node module, do not parse any deeper
     if (!['\\', '/', '.'].includes(componentTree.importPath[0])) {
       // Check that import path is not an aliased import
-      let thirdParty = true;
-
-      for (let alias of this.aliases) {
-        if (componentTree.importPath.indexOf(alias) === 0) {
-          thirdParty = false;
-          break;
-        }
-      }
+      const thirdParty = this.aliases.every(
+        (alias) => componentTree.importPath.indexOf(alias) !== 0
+      );
 
       if (thirdParty) {
         componentTree.isThirdParty = true;
@@ -358,7 +353,7 @@ export class SaplingParser {
   private getFileName(componentTree: Tree): string | null {
     // If import aliasing is in use, correctly resolve file path with filing cabinet / enhanced resolve for non-root node files:
     if (this.settings.useAlias && componentTree.parentList.length) {
-      let result;
+      let result = '';
       if (this.settings.tsConfig) {
         try {
           const options = {
@@ -375,7 +370,7 @@ export class SaplingParser {
       }
 
       // Otherwise try webpack aliases if present:
-      if (!result && this.settings.webpackConfig && this.wpResolver) {
+      if (!result.length && this.settings.webpackConfig && this.wpResolver) {
         try {
           result = this.wpResolver(this.settings.appRoot, componentTree.importPath);
         } catch (err) {
@@ -398,8 +393,8 @@ export class SaplingParser {
       // Try and find file extension that exists in directory:
       try {
         const fileArray = fs.readdirSync(path.dirname(componentTree.filePath));
-        const regEx = new RegExp(`${componentTree.fileName}.(j|t)sx?$`);
-        let fileName = fileArray.find((fileStr) => fileStr.match(regEx));
+        const regEx = new RegExp(`${componentTree.fileName}\\.[jt]sx?$`);
+        const fileName = fileArray.find((fileStr) => fileStr.match(regEx));
         return fileName ? (componentTree.filePath += path.extname(fileName)) : null;
       } catch (err) {
         console.log('Error trying to find specified file: ', err);

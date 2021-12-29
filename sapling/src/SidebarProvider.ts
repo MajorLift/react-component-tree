@@ -31,14 +31,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     if (workspace) {
       workspaceRoot = workspace[0].uri.fsPath;
     }
-    const settings = settingsState
-      ? settingsState
-      : {
-          useAlias: false,
-          appRoot: workspaceRoot,
-          webpackConfig: '',
-          tsConfig: '',
-        };
+    const settings = settingsState || {
+      useAlias: false,
+      appRoot: workspaceRoot,
+      webpackConfig: '',
+      tsConfig: '',
+    };
 
     // Initialise parser
     if (treeState) {
@@ -64,7 +62,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       // Get the current settings specifications the user selects
       const settings = vscode.workspace.getConfiguration('sapling');
       // Send a message back to the webview with the data on settings
-      webviewView.webview.postMessage({
+      await webviewView.webview.postMessage({
         type: 'preferences-data',
         value: settings.view,
       });
@@ -73,7 +71,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     // Event listener that triggers whenever the user changes their current active window
     vscode.window.onDidChangeActiveTextEditor(async (e) => {
       // Post a message to the webview with the file path of the user's current active window
-      webviewView.webview.postMessage({
+      await webviewView.webview.postMessage({
         type: 'current-tab',
         value: e ? e.document.fileName : undefined,
       });
@@ -95,6 +93,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     // Message switch case that will listen for messages sent from the webview
     webviewView.webview.onDidReceiveMessage(async (data) => {
+      let rootPath;
+      let filePath;
       // Switch cases based on the type sent as a message
       switch (data.type) {
         // Case when user alters parser settings in webview
@@ -108,7 +108,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
               break;
 
             case 'appRoot':
-              const rootPath = await this.selectFile(false, true);
+              rootPath = await this.selectFile(false, true);
               if (!rootPath) {
                 return;
               }
@@ -117,7 +117,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
             case 'webpackConfig':
             case 'tsConfig':
-              const filePath = await this.selectFile();
+              filePath = await this.selectFile();
               if (!filePath) {
                 return;
               }
@@ -140,7 +140,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         // Case when the user selects a file to begin a tree
         case 'onFile': {
           // Get filePath via vscode file selector
-          const filePath = await this.selectFile();
+          filePath = await this.selectFile();
 
           // If no file picked or selection fails, do nothing
           if (!filePath) {
@@ -160,7 +160,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           }
           // Open and the show the user the file they want to see
           const doc = await vscode.workspace.openTextDocument(data.value);
-          const editor = await vscode.window.showTextDocument(doc, {
+          await vscode.window.showTextDocument(doc, {
             preserveFocus: false,
             preview: false,
           });
@@ -241,14 +241,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     if (fileName) {
       this.parser.setEntryFile(fileName);
       this.parser.parse();
-      this.updateView();
+      await this.updateView();
     }
   };
 
   // Method called by VS Code clearWorkSpaceSettings command
   // Clears Sapling workspace state and refreshes webview
-  public clearWorkSpaceState = (): void => {
-    this.context.workspaceState.update('sapling', undefined);
+  public clearWorkSpaceState = async (): Promise<void> => {
+    await this.context.workspaceState.update('sapling', undefined);
     // Reset to default settings:
     const workspace = vscode.workspace.workspaceFolders;
     let workspaceRoot = '';
@@ -261,10 +261,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       webpackConfig: '',
       tsConfig: '',
     };
-    this.context.workspaceState.update('saplingSettings', settings);
+    await this.context.workspaceState.update('saplingSettings', settings);
     this.parser = new SaplingParser('');
     this.parser.settings = settings;
-    this.updateView();
+    await this.updateView();
   };
 
   // revive statement for the webview panel
@@ -273,7 +273,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   // Helper method to send updated tree data to view, and saves current tree to workspace
-  private updateView() {
+  private async updateView() {
     // If webview does not exist do nothing
     if (!this.parser || !this._view) {
       return;
@@ -281,15 +281,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     // Save current state of tree to workspace state:
     const tree = this.parser.getTree();
-    this.context.workspaceState.update('sapling', tree);
+    await this.context.workspaceState.update('sapling', tree);
     // Send updated tree to webview
-    this._view.webview.postMessage({
+    await this._view.webview.postMessage({
       type: 'parsed-data',
       value: tree,
     });
 
     // Send current settings to webview
-    this._view.webview.postMessage({
+    await this._view.webview.postMessage({
       type: 'settings-data',
       value: this.parser.settings,
     });

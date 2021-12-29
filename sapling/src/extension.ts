@@ -23,14 +23,14 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('sapling.generateTree', async (uri: vscode.Uri | undefined) => {
       await vscode.commands.executeCommand('workbench.view.extension.sapling-sidebar-view');
-      sidebarProvider.statusButtonClicked(uri);
+      await sidebarProvider.statusButtonClicked(uri);
     })
   );
 
   // Register command to clear local sapling settings from workspace
   context.subscriptions.push(
-    vscode.commands.registerCommand('sapling.clearWorkSpaceSettings', () => {
-      sidebarProvider.clearWorkSpaceState();
+    vscode.commands.registerCommand('sapling.clearWorkSpaceSettings', async () => {
+      await sidebarProvider.clearWorkSpaceState();
     })
   );
 
