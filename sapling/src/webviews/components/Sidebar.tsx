@@ -13,8 +13,7 @@ const Sidebar = () => {
   // state variables for the incomimg treeData, parsed viewData, user's global VSCode preferences, local webview settings, and the root file name
   const [treeData, setTreeData]: [TreeType[], Function] = useState();
   const [viewData, setViewData]: [TreeType[], Function] = useState();
-  const [preferences, setPreferences]: [{ [key: string]: boolean }, Function] =
-    useState();
+  const [preferences, setPreferences]: [{ [key: string]: boolean }, Function] = useState();
   const [settings, setSettings]: [SaplingSettings, Function] = useState({
     useAlias: false,
     appRoot: '',
@@ -89,17 +88,14 @@ const Sidebar = () => {
       // Logic to parse the nodes based on the users settings
       for (let i = 0; i < node.children.length; i++) {
         if (
-          node.children[i].thirdParty &&
+          node.children[i].isThirdParty &&
           preferences.thirdParty &&
-          !node.children[i].reactRouter
+          !node.children[i].isReactRouter
         ) {
           validChildren.push(node.children[i]);
-        } else if (node.children[i].reactRouter && preferences.reactRouter) {
+        } else if (node.children[i].isReactRouter && preferences.reactRouter) {
           validChildren.push(node.children[i]);
-        } else if (
-          !node.children[i].thirdParty &&
-          !node.children[i].reactRouter
-        ) {
+        } else if (!node.children[i].isThirdParty && !node.children[i].isReactRouter) {
           validChildren.push(node.children[i]);
         }
       }
@@ -138,11 +134,7 @@ const Sidebar = () => {
         <div className="tree_view">
           <ul className="tree_beginning">
             {viewData && preferences ? (
-              <Tree
-                data={viewData}
-                updateTreeView={updateTreeView}
-                first={true}
-              />
+              <Tree data={viewData} updateTreeView={updateTreeView} first={true} />
             ) : (
               'Please Select a React file to view component tree'
             )}

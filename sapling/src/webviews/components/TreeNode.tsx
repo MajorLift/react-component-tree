@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect } from 'react';
 import { Tree as TreeType } from '../../types/Tree';
 
 // import tree for recursive calls
@@ -7,26 +7,16 @@ import Tree from './Tree';
 
 // imports for the icons
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faInfoCircle,
-  faArrowCircleRight,
-  faStore,
-} from '@fortawesome/free-solid-svg-icons';
+import { faInfoCircle, faArrowCircleRight, faStore } from '@fortawesome/free-solid-svg-icons';
 
 // imports for the tooltip
 import Tippy from '@tippy.js/react';
 import 'tippy.js/dist/tippy.css';
 
-const TreeNode = ({
-  node,
-  updateTreeView,
-}: {
-  node: TreeType;
-  updateTreeView: Function;
-}) => {
+const TreeNode = ({ node, updateTreeView }: { node: TreeType; updateTreeView: Function }) => {
   // state variables for the users current active file and the expanded value (boolean) of the node
   const [currFile, setCurrFile] = useState(false);
-  const [expanded, setExpanded] = useState(node.expanded);
+  const [expanded, setExpanded] = useState(node.isExpanded);
 
   // useEffect that will add an event listener for 'message' to each node, in order to show which file the user is currently working in
   useEffect(() => {
@@ -86,13 +76,13 @@ const TreeNode = ({
     setExpanded(newExpanded);
 
     // Update local tree view toggled status:
-    node.expanded = newExpanded;
+    node.isExpanded = newExpanded;
     updateTreeView();
 
     // Send a message to the extension on the changed checked value of the current node
     tsvscode.postMessage({
       type: 'onNodeToggle',
-      value: { id: node.id, expanded: newExpanded },
+      value: { id: node.id, expandedState: newExpanded },
     });
   };
 
@@ -104,12 +94,7 @@ const TreeNode = ({
       {/* Conditional to check whether there are children or not on the current node */}
       {child ? (
         <li>
-          <input
-            type="checkbox"
-            checked={expanded}
-            id={node.id}
-            onClick={toggleNode}
-          />
+          <input type="checkbox" checked={expanded} id={node.id} onClick={toggleNode} />
           {/* Checks for the user's current active file */}
           {currFile ? (
             <label className={classString} htmlFor={node.id}>
@@ -121,9 +106,9 @@ const TreeNode = ({
             </label>
           )}
           {/* Checks to make sure there are no thirdParty or reactRouter node_icons */}
-          {!node.thirdParty && !node.reactRouter ? (
-            <Fragment>
-              {node.reduxConnect ? (
+          {!node.isThirdParty && !node.isReactRouter ? (
+            <>
+              {node.hasReduxConnect ? (
                 <Tippy
                   content={
                     <p>
@@ -151,13 +136,9 @@ const TreeNode = ({
               <a className="node_icons" href="" onClick={viewFile}>
                 <FontAwesomeIcon icon={faArrowCircleRight} />
               </a>
-            </Fragment>
+            </>
           ) : null}
-          <Tree
-            data={node.children}
-            updateTreeView={updateTreeView}
-            first={false}
-          />
+          <Tree data={node.children} updateTreeView={updateTreeView} first={false} />
         </li>
       ) : (
         <li>
@@ -170,9 +151,9 @@ const TreeNode = ({
             <span className={classString}>{node.name}</span>
           )}
           {/* Checks to make sure there are no thirdParty or reactRouter node_icons */}
-          {!node.thirdParty && !node.reactRouter ? (
-            <Fragment>
-              {node.reduxConnect ? (
+          {!node.isThirdParty && !node.isReactRouter ? (
+            <>
+              {node.hasReduxConnect ? (
                 <Tippy
                   content={
                     <p>
@@ -200,7 +181,7 @@ const TreeNode = ({
               <a className="node_icons" href="" onClick={viewFile}>
                 <FontAwesomeIcon icon={faArrowCircleRight} />
               </a>
-            </Fragment>
+            </>
           ) : null}
         </li>
       )}
