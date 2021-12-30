@@ -26,6 +26,40 @@
   color: var(--vscode-editorError-foreground);
 }
 
+.inputFile {
+  width: max-content;
+  background: var(--vscode-button-background);
+  padding: 0.05em .2em;
+  margin-left: .8em;
+  margin-top: .2em;
+  border-radius: 5px;
+}
+
+.inputfile + button {
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: -1;
+}
+
+.inputfile + button + label {
+  font-size: 0.8em;
+  font-weight: 700;
+  color: var(--vscode-button-foreground);
+  display: inline-block;
+  transition: .2s;
+}
+
+.inputfile + button + label:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.inputfile + button + label {
+  cursor: pointer;
+}
+
 .node_icons {
   margin-left: 5px;
   opacity: 40%;
