@@ -26,40 +26,6 @@
   color: var(--vscode-editorError-foreground);
 }
 
-.inputFile {
-  width: max-content;
-  background: var(--vscode-button-background);
-  padding: 0.05em .2em;
-  margin-left: .8em;
-  margin-top: .2em;
-  border-radius: 5px;
-}
-
-.inputfile + button {
-  width: 0.1px;
-  height: 0.1px;
-  opacity: 0;
-  overflow: hidden;
-  position: absolute;
-  z-index: -1;
-}
-
-.inputfile + button + label {
-  font-size: 0.8em;
-  font-weight: 700;
-  color: var(--vscode-button-foreground);
-  display: inline-block;
-  transition: .2s;
-}
-
-.inputfile + button + label:hover {
-  background: var(--vscode-button-hoverBackground);
-}
-
-.inputfile + button + label {
-  cursor: pointer;
-}
-
 .node_icons {
   margin-left: 5px;
   opacity: 40%;
@@ -245,6 +211,38 @@ li {
   margin: 10px 10px;
 }
 
+.selector {
+  width: fit-content;
+  background: var(--vscode-button-background);
+  padding: 0.05em .2em;
+  margin-left: .8em;
+  margin-top: .3em;
+  border-radius: 5px;
+}
+
+.selector + button.inputfile {
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: -1;
+}
+
+.selector + button.inputfile + strong {
+  font-size: 0.8em;
+  font-weight: 700;
+  color: var(--vscode-button-foreground);
+  display: inline-block;
+  transition: .2s;
+}
+
+.selector + button.inputfile + strong:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.selector + button.inputfile + strong {
+  cursor: pointer;
+}
+
 .settings-control {
   margin-top: 10px;
 }
@@ -257,6 +255,12 @@ button.inputfile {
   max-width: 250px;
 }
 
-button.inputfile[disabled] {
+button[disabled] {
   background-color: var(--vscode-foreground);
+  position: relative;
+  left: -2.5%;
+  top: -3%;
+  width: 105%;
+  height: 105%;
+  border-radius: 5px;
 }

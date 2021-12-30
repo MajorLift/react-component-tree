@@ -18,10 +18,12 @@ const Navbar = ({ rootFile }: any) => {
     <div id="navbar">
       <div className="settings-control">
         <label htmlFor="file"> Select React File for Tree Root:</label>
-        <button id="file" className="inputfile" onClick={() => fileMessage()}>
-          <FontAwesomeIcon icon={faDownload} />
-          <strong>{rootFile ? ` ${rootFile}` : ' Choose a file...'}</strong>
-        </button>
+        <div className="selector">
+          <button type="submit" id="file" className="inputfile" onClick={fileMessage}>
+            <FontAwesomeIcon icon={faDownload} />
+            <strong>{rootFile ? ` ${rootFile}` : ' Choose a file...'}</strong>
+          </button>
+        </div>
       </div>
     </div>
   );
