@@ -13,21 +13,21 @@ import { Tree } from '../../types';
 // import * as myExtension from '../../extension';
 
 suite('Parser Test Suite', () => {
-  let parser: SaplingParser, tree: Tree, file: string;
+  let tree: Tree, file: string;
+
   // UNPARSED TREE TEST
   describe('It initializes correctly', () => {
     before(() => {
       file = path.join(__dirname, '../../../src/test/test_apps/test_0/index.js');
-      parser = new SaplingParser(file);
+      tree = SaplingParser.parse(file);
     });
 
     test('A new instance of the parser class is an object', () => {
-      expect(parser).to.be.an('object');
+      expect(tree).to.be.an('object');
     });
 
-    test('It initializes with a proper entry file and an undefined tree', () => {
-      expect(parser.entryFile).to.equal(file);
-      expect(parser.tree).to.be.undefined;
+    test('It initializes with a proper entry file', () => {
+      expect(tree.filePath).to.equal(file);
     });
   });
 
@@ -35,8 +35,7 @@ suite('Parser Test Suite', () => {
   describe('It works for simple apps', () => {
     before(() => {
       file = path.join(__dirname, '../../../src/test/test_apps/test_0/index.js');
-      parser = new SaplingParser(file);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file);
     });
 
     test('Parsing returns a object tree that is not undefined', () => {
@@ -44,9 +43,9 @@ suite('Parser Test Suite', () => {
     });
 
     test('Parsed tree has a property called name with value index and one child with name App', () => {
-      expect(tree).to.have.own.property('name').that.is.equal('index');
-      expect(tree).to.have.own.property('children').that.is.an('array');
-      expect(tree.children[0]).to.have.own.property('name').that.is.equal('App');
+      expect(tree.name).equals('index');
+      expect(tree.children).that.is.an('array');
+      expect(tree.get(0).name).equals('App');
     });
   });
 
@@ -54,26 +53,25 @@ suite('Parser Test Suite', () => {
   describe('It works for 2 components', () => {
     before(() => {
       file = path.join(__dirname, '../../../src/test/test_apps/test_1/index.js');
-      parser = new SaplingParser(file);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file);
     });
 
     test('Parsed tree has a property called name with value index and one child with name App, which has its own child Main', () => {
-      expect(tree).to.have.own.property('name').to.equal('index');
-      expect(tree.children[0].name).to.equal('App');
-      expect(tree.children[0]).to.have.own.property('children').that.is.an('array');
-      expect(tree.children[0].children[0]).to.have.own.property('name').to.equal('Main');
+      expect(tree.name).to.equal('index');
+      expect(tree.get(0).name).to.equal('App');
+      expect(tree.get(0).children).that.is.an('array');
+      expect(tree.get(0, 0).name).to.equal('Main');
     });
 
     test('Parsed tree children should equal the child components', () => {
       expect(tree.children).to.have.lengthOf(1);
-      expect(tree.children[0].children).to.have.lengthOf(1);
+      expect(tree.get(0).children).to.have.lengthOf(1);
     });
 
     test('Parsed tree depth is accurate', () => {
-      expect(tree).to.have.own.property('depth').that.is.equal(0);
-      expect(tree.children[0]).to.have.own.property('depth').that.is.equal(1);
-      expect(tree.children[0].children[0]).to.have.own.property('depth').that.is.equal(2);
+      expect(tree.depth).equals(0);
+      expect(tree.get(0).depth).equals(1);
+      expect(tree.get(0, 0).depth).equals(2);
     });
   });
 
@@ -81,28 +79,27 @@ suite('Parser Test Suite', () => {
   describe('It works for third party / React Router components and destructured imports', () => {
     before(() => {
       file = path.join(__dirname, '../../../src/test/test_apps/test_2/index.js');
-      parser = new SaplingParser(file);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file);
     });
 
     test('Should parse destructured and third party imports', () => {
       expect(tree.children).to.have.lengthOf(3);
-      expect(tree.children[0]).to.have.own.property('name').that.is.oneOf(['Switch', 'Route']);
-      expect(tree.children[1]).to.have.own.property('name').that.is.oneOf(['Switch', 'Route']);
-      expect(tree.children[2]).to.have.own.property('name').that.is.equal('Tippy');
+      expect(tree.get(0).name).that.is.oneOf(['Switch', 'Route']);
+      expect(tree.get(1).name).that.is.oneOf(['Switch', 'Route']);
+      expect(tree.get(2).name).equals('Tippy');
     });
 
-    test('isReactRouter should be designated as third party and isReactRouter', () => {
-      expect(tree.children[0]).to.have.own.property('isThirdParty').to.be.true;
-      expect(tree.children[1]).to.have.own.property('isThirdParty').to.be.true;
+    test('React router should be designated as third party and isReactRouter', () => {
+      expect(tree.get(0).isThirdParty).to.be.true;
+      expect(tree.get(1).isThirdParty).to.be.true;
 
-      expect(tree.children[0]).to.have.own.property('isReactRouter').to.be.true;
-      expect(tree.children[1]).to.have.own.property('isReactRouter').to.be.true;
+      expect(tree.get(0).isReactRouter).to.be.true;
+      expect(tree.get(1).isReactRouter).to.be.true;
     });
 
     test('Tippy should be designated as third party and not isReactRouter', () => {
-      expect(tree.children[2]).to.have.own.property('isThirdParty').to.be.true;
-      expect(tree.children[2]).to.have.own.property('isReactRouter').to.be.false;
+      expect(tree.get(2).isThirdParty).to.be.true;
+      expect(tree.get(2).isReactRouter).to.be.false;
     });
   });
 
@@ -110,16 +107,15 @@ suite('Parser Test Suite', () => {
   describe('It identifies a Redux store connection and designates the component as such', () => {
     before(() => {
       file = path.join(__dirname, '../../../src/test/test_apps/test_3/index.js');
-      parser = new SaplingParser(file);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file);
     });
 
     test('The hasReduxConnect properties of the connected component and the unconnected component should be true and false, respectively', () => {
-      expect(tree.children[1].children[0].name).to.equal('ConnectedContainer');
-      expect(tree.children[1].children[0]).to.have.own.property('hasReduxConnect').that.is.true;
+      expect(tree.get(1, 0).name).to.equal('ConnectedContainer');
+      expect(tree.get(1, 0).hasReduxConnect).that.is.true;
 
-      expect(tree.children[1].children[1].name).to.equal('UnconnectedContainer');
-      expect(tree.children[1].children[1]).to.have.own.property('hasReduxConnect').that.is.false;
+      expect(tree.get(1, 1).name).to.equal('UnconnectedContainer');
+      expect(tree.get(1, 1).hasReduxConnect).that.is.false;
     });
   });
 
@@ -127,17 +123,16 @@ suite('Parser Test Suite', () => {
   describe('It works for aliases', () => {
     before(() => {
       file = path.join(__dirname, '../../../src/test/test_apps/test_4/index.js');
-      parser = new SaplingParser(file);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file);
     });
 
     test('alias should still give us components', () => {
       expect(tree.children).to.have.lengthOf(2);
-      expect(tree.children[0]).to.have.own.property('name').that.is.equal('Switch');
-      expect(tree.children[1]).to.have.own.property('name').that.is.equal('Route');
+      expect(tree.get(0).name).equals('Switch');
+      expect(tree.get(1).name).equals('Route');
 
-      expect(tree.children[0]).to.have.own.property('name').that.is.not.equal('S');
-      expect(tree.children[1]).to.have.own.property('name').that.is.not.equal('R');
+      expect(tree.get(0).name).that.is.not.equal('S');
+      expect(tree.get(1).name).that.is.not.equal('R');
     });
   });
 
@@ -146,8 +141,7 @@ suite('Parser Test Suite', () => {
     let names: string[], paths: string[], expectedNames: string[], expectedPaths: string[];
     before(() => {
       file = path.join(__dirname, '../../../src/test/test_apps/test_5/index.js');
-      parser = new SaplingParser(file);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file);
 
       names = tree.children.map((child) => child.name);
       paths = tree.children.map((child) => child.filePath);
@@ -181,13 +175,12 @@ suite('Parser Test Suite', () => {
   describe('It works for badly imported children nodes', () => {
     before(() => {
       file = path.join(__dirname, '../../../src/test/test_apps/test_6/index.js');
-      parser = new SaplingParser(file);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file);
     });
 
     test('improperly imported child component should exist but show an error', () => {
-      expect(tree.children[0].children[0]).to.have.own.property('name').that.equals('App2');
-      expect(tree.children[0].children[0]).to.have.own.property('error').that.does.not.equal('');
+      expect(tree.get(0, 0).name).that.equals('App2');
+      expect(tree.get(0, 0).error).that.does.not.equal('');
     });
   });
 
@@ -195,14 +188,13 @@ suite('Parser Test Suite', () => {
   describe('It should log an error when the parser encounters a javascript syntax error', () => {
     before(() => {
       file = path.join(__dirname, '../../../src/test/test_apps/test_7/index.js');
-      parser = new SaplingParser(file);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file);
     });
 
     test('Should have a nonempty error message on the invalid child and not parse further', () => {
-      expect(tree.children[0]).to.have.own.property('name').that.equals('App');
-      expect(tree.children[0]).to.have.own.property('error').that.does.not.equal('');
-      expect(tree.children[0].children).to.have.lengthOf(0);
+      expect(tree.get(0).name).that.equals('App');
+      expect(tree.get(0).error).that.does.not.equal('');
+      expect(tree.get(0).children).to.have.lengthOf(0);
     });
   });
 
@@ -210,18 +202,17 @@ suite('Parser Test Suite', () => {
   describe('It should properly count repeat components and consolidate and grab their props', () => {
     before(() => {
       file = path.join(__dirname, '../../../src/test/test_apps/test_8/index.js');
-      parser = new SaplingParser(file);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file);
     });
 
     test('Grandchild should have a count of 1', () => {
-      expect(tree.children[0].children[0]).to.have.own.property('count').that.equals(1);
+      expect(tree.get(0, 0).count).that.equals(1);
     });
 
     test('Grandchild should have the correct three props', () => {
-      expect(tree.children[0].children[0].props).has.own.property('prop1').that.is.true;
-      expect(tree.children[0].children[0].props).has.own.property('prop2').that.is.true;
-      expect(tree.children[0].children[0].props).has.own.property('prop3').that.is.true;
+      expect(tree.get(0, 0).props).has.own.property('prop1').that.is.true;
+      expect(tree.get(0, 0).props).has.own.property('prop2').that.is.true;
+      expect(tree.get(0, 0).props).has.own.property('prop3').that.is.true;
     });
   });
 
@@ -229,17 +220,16 @@ suite('Parser Test Suite', () => {
   describe('It should properly count repeat components and consolidate and grab their props', () => {
     before(() => {
       file = path.join(__dirname, '../../../src/test/test_apps/test_9/index.js');
-      parser = new SaplingParser(file);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file);
     });
 
     test('Grandchild should have a count of 2', () => {
-      expect(tree.children[0].children[0]).to.have.own.property('count').that.equals(2);
+      expect(tree.get(0, 0).count).that.equals(2);
     });
 
     test('Grandchild should have the correct two props', () => {
-      expect(tree.children[0].children[0].props).has.own.property('prop1').that.is.true;
-      expect(tree.children[0].children[0].props).has.own.property('prop2').that.is.true;
+      expect(tree.get(0, 0).props).has.own.property('prop1').that.is.true;
+      expect(tree.get(0, 0).props).has.own.property('prop2').that.is.true;
     });
   });
 
@@ -247,20 +237,15 @@ suite('Parser Test Suite', () => {
   describe('It should render children when children are rendered as values of prop called component', () => {
     before(() => {
       file = path.join(__dirname, '../../../src/test/test_apps/test_10/index.jsx');
-      parser = new SaplingParser(file);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file);
     });
 
     test('Parent should have children that match the value stored in component prop', () => {
-      expect(tree.children[0]).to.have.own.property('name').that.is.equal('BrowserRouter');
-      expect(tree.children[1]).to.have.own.property('name').that.is.equal('App');
+      expect(tree.get(0).name).equals('BrowserRouter');
+      expect(tree.get(1).name).equals('App');
 
-      expect(tree.children[1].children[3])
-        .to.have.own.property('name')
-        .that.is.equal('DrillCreator');
-      expect(tree.children[1].children[4])
-        .to.have.own.property('name')
-        .that.is.equal('HistoryDisplay');
+      expect(tree.get(1, 3).name).equals('DrillCreator');
+      expect(tree.get(1, 4).name).equals('HistoryDisplay');
     });
   });
 
@@ -268,8 +253,7 @@ suite('Parser Test Suite', () => {
   describe('It should render the second call of mutually recursive components, but no further', () => {
     before(() => {
       file = path.join(__dirname, '../../../src/test/test_apps/test_11/index.js');
-      parser = new SaplingParser(file);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file);
     });
 
     test('Tree should not be undefined', () => {
@@ -277,16 +261,14 @@ suite('Parser Test Suite', () => {
     });
 
     test('Tree should have an index component while child App1, grandchild App2, great-grandchild App1', () => {
-      expect(tree).to.have.own.property('name').that.is.equal('index');
+      expect(tree.name).equals('index');
       expect(tree.children).to.have.lengthOf(1);
-      expect(tree.children[0]).to.have.own.property('name').that.is.equal('App1');
-      expect(tree.children[0].children).to.have.lengthOf(1);
-      expect(tree.children[0].children[0]).to.have.own.property('name').that.is.equal('App2');
-      expect(tree.children[0].children[0].children).to.have.lengthOf(1);
-      expect(tree.children[0].children[0].children[0])
-        .to.have.own.property('name')
-        .that.is.equal('App1');
-      expect(tree.children[0].children[0].children[0].children).to.have.lengthOf(0);
+      expect(tree.get(0).name).equals('App1');
+      expect(tree.get(0).children).to.have.lengthOf(1);
+      expect(tree.get(0, 0).name).equals('App2');
+      expect(tree.get(0, 0).children).to.have.lengthOf(1);
+      expect(tree.get(0, 0, 0).name).equals('App1');
+      expect(tree.get(0, 0, 0).children).to.have.lengthOf(0);
     });
   });
 
@@ -294,20 +276,19 @@ suite('Parser Test Suite', () => {
   describe('It should parse Next.js applications', () => {
     before(() => {
       file = path.join(__dirname, '../../../src/test/test_apps/test_12/pages/index.js');
-      parser = new SaplingParser(file);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file);
     });
 
     test('Root should be named index, children should be named Head, Navbar, and Image, children of Navbar should be named Link and Image', () => {
-      expect(tree).to.have.own.property('name').that.is.equal('index');
+      expect(tree.name).equals('index');
       expect(tree.children).to.have.lengthOf(3);
-      expect(tree.children[0]).to.have.own.property('name').that.is.equal('Head');
-      expect(tree.children[1]).to.have.own.property('name').that.is.equal('Navbar');
-      expect(tree.children[2]).to.have.own.property('name').that.is.equal('Image');
+      expect(tree.get(0).name).equals('Head');
+      expect(tree.get(1).name).equals('Navbar');
+      expect(tree.get(2).name).equals('Image');
 
-      expect(tree.children[1].children).to.have.lengthOf(2);
-      expect(tree.children[1].children[0]).to.have.own.property('name').that.is.equal('Link');
-      expect(tree.children[1].children[1]).to.have.own.property('name').that.is.equal('Image');
+      expect(tree.get(1).children).to.have.lengthOf(2);
+      expect(tree.get(1, 0).name).equals('Link');
+      expect(tree.get(1, 1).name).equals('Image');
     });
   });
 
@@ -315,21 +296,20 @@ suite('Parser Test Suite', () => {
   describe('It should parse VariableDeclaration imports including React.lazy imports', () => {
     before(() => {
       file = path.join(__dirname, '../../../src/test/test_apps/test_13/index.js');
-      parser = new SaplingParser(file);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file);
     });
 
     test('Root should be named index, it should have one child named App', () => {
-      expect(tree).to.have.own.property('name').that.is.equal('index');
+      expect(tree.name).equals('index');
       expect(tree.children).to.have.lengthOf(1);
-      expect(tree.children[0]).to.have.own.property('name').that.is.equal('App');
+      expect(tree.get(0).name).equals('App');
     });
 
     test('App should have three children, Page1, Page2 and Page3, all found successfully', () => {
-      expect(tree.children[0].children[0]).to.have.own.property('name').that.is.equal('Page1');
-      expect(tree.children[0].children[0]).to.have.own.property('isThirdParty').that.is.false;
-      expect(tree.children[0].children[1]).to.have.own.property('name').that.is.equal('Page2');
-      expect(tree.children[0].children[1]).to.have.own.property('isThirdParty').that.is.false;
+      expect(tree.get(0, 0).name).equals('Page1');
+      expect(tree.get(0, 0).isThirdParty).that.is.false;
+      expect(tree.get(0, 1).name).equals('Page2');
+      expect(tree.get(0, 1).isThirdParty).that.is.false;
     });
   });
 
@@ -345,23 +325,22 @@ suite('Parser Test Suite', () => {
         tsConfig: path.join(__dirname, '../../../src/test/test_apps/test_14/tsconfig.json'),
       };
 
-      parser = new SaplingParser(file, settings);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file, settings);
     });
 
     test('Root should be named index, it should have one child named App', () => {
-      expect(tree).to.have.own.property('name').that.is.equal('index');
+      expect(tree.name).equals('index');
       expect(tree.children).to.have.lengthOf(1);
-      expect(tree.children[0]).to.have.own.property('name').that.is.equal('App');
+      expect(tree.get(0).name).equals('App');
     });
 
     test('App should not be registered as a third-party component', () => {
-      expect(tree).to.have.own.property('isThirdParty').that.is.false;
+      expect(tree.isThirdParty).is.false;
     });
 
     test('App should have one child, Component 1, that is not third-party ', () => {
-      expect(tree.children[0].children[0]).to.have.own.property('name').that.is.equal('Component1');
-      expect(tree.children[0].children[0]).to.have.own.property('isThirdParty').that.is.false;
+      expect(tree.get(0, 0).name).equals('Component1');
+      expect(tree.get(0, 0).isThirdParty).is.false;
     });
   });
 
@@ -380,23 +359,22 @@ suite('Parser Test Suite', () => {
         tsConfig: '',
       };
 
-      parser = new SaplingParser(file, settings);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file, settings);
     });
 
     test('Root should be named index, it should have one child named App', () => {
-      expect(tree).to.have.own.property('name').that.is.equal('index');
+      expect(tree.name).equals('index');
       expect(tree.children).to.have.lengthOf(1);
-      expect(tree.children[0]).to.have.own.property('name').that.is.equal('App');
+      expect(tree.get(0).name).equals('App');
     });
 
     test('App should not be registered as a third-party component', () => {
-      expect(tree).to.have.own.property('isThirdParty').that.is.false;
+      expect(tree.isThirdParty).is.false;
     });
 
     test('App should have one child, Component 1, that is not third-party ', () => {
-      expect(tree.children[0].children[0]).to.have.own.property('name').that.is.equal('Component1');
-      expect(tree.children[0].children[0]).to.have.own.property('isThirdParty').that.is.false;
+      expect(tree.get(0, 0).name).equals('Component1');
+      expect(tree.get(0, 0).isThirdParty).that.is.false;
     });
   });
 
@@ -404,28 +382,27 @@ suite('Parser Test Suite', () => {
   describe('It should parse require function calls with destructuring and aliasing', () => {
     before(() => {
       file = path.join(__dirname, '../../../src/test/test_apps/test_15/index.js');
-      parser = new SaplingParser(file);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file);
     });
 
     test('Root should be named index, it should have one child named App', () => {
-      expect(tree).to.have.own.property('name').that.is.equal('index');
+      expect(tree.name).equals('index');
       expect(tree.children).to.have.lengthOf(1);
-      expect(tree.children[0]).to.have.own.property('name').that.is.equal('App');
+      expect(tree.get(0).name).equals('App');
     });
 
     test('Object destructured children PageA1, PageA2 successfully found. PageA1 is found with its filename, not as Alias.', () => {
-      expect(tree.children[0].children[0]).to.have.own.property('name').that.is.not.equal('Alias');
-      expect(tree.children[0].children[0]).to.have.own.property('name').that.is.equal('PageA1');
-      expect(tree.children[0].children[0]).to.have.own.property('isThirdParty').that.is.false;
-      expect(tree.children[0].children[1]).to.have.own.property('name').that.is.equal('PageA2');
-      expect(tree.children[0].children[1]).to.have.own.property('isThirdParty').that.is.false;
+      expect(tree.get(0, 0).name).that.is.not.equal('Alias');
+      expect(tree.get(0, 0).name).equals('PageA1');
+      expect(tree.get(0, 0).isThirdParty).that.is.false;
+      expect(tree.get(0, 1).name).equals('PageA2');
+      expect(tree.get(0, 1).isThirdParty).that.is.false;
     });
     test('Array destructured require import PageB1, PageB2 all found successfully', () => {
-      expect(tree.children[0].children[2]).to.have.own.property('name').that.is.equal('PageB1');
-      expect(tree.children[0].children[2]).to.have.own.property('isThirdParty').that.is.false;
-      expect(tree.children[0].children[3]).to.have.own.property('name').that.is.equal('PageB2');
-      expect(tree.children[0].children[3]).to.have.own.property('isThirdParty').that.is.false;
+      expect(tree.get(0, 2).name).equals('PageB1');
+      expect(tree.get(0, 2).isThirdParty).that.is.false;
+      expect(tree.get(0, 3).name).equals('PageB2');
+      expect(tree.get(0, 3).isThirdParty).that.is.false;
     });
   });
 
@@ -433,29 +410,28 @@ suite('Parser Test Suite', () => {
   describe('It should parse variable declaration imports with Array Destructuring, and Object Destructuring with Aliasing', () => {
     before(() => {
       file = path.join(__dirname, '../../../src/test/test_apps/test_16/index.js');
-      parser = new SaplingParser(file);
-      tree = parser.parse();
+      tree = SaplingParser.parse(file);
     });
 
     test('Root should be named index, it should have one child named App', () => {
-      expect(tree).to.have.own.property('name').that.is.equal('index');
+      expect(tree.name).equals('index');
       expect(tree.children).to.have.lengthOf(1);
-      expect(tree.children[0]).to.have.own.property('name').that.is.equal('App');
+      expect(tree.get(0).name).equals('App');
     });
 
     test('Object destructured children PageA1, PageA2 successfully found. PageA1 is found with its filename, not as Alias.', () => {
-      expect(tree.children[0].children[0]).to.have.own.property('name').that.is.not.equal('Alias');
-      expect(tree.children[0].children[0]).to.have.own.property('name').that.is.equal('PageA1');
-      expect(tree.children[0].children[0]).to.have.own.property('isThirdParty').that.is.false;
-      expect(tree.children[0].children[1]).to.have.own.property('name').that.is.equal('PageA2');
-      expect(tree.children[0].children[1]).to.have.own.property('isThirdParty').that.is.false;
+      expect(tree.get(0, 0).name).that.is.not.equal('Alias');
+      expect(tree.get(0, 0).name).equals('PageA1');
+      expect(tree.get(0, 0).isThirdParty).that.is.false;
+      expect(tree.get(0, 1).name).equals('PageA2');
+      expect(tree.get(0, 1).isThirdParty).that.is.false;
     });
 
     test('Array destructured children PageB1, PageB2 all found successfully', () => {
-      expect(tree.children[0].children[2]).to.have.own.property('name').that.is.equal('PageB1');
-      expect(tree.children[0].children[2]).to.have.own.property('isThirdParty').that.is.false;
-      expect(tree.children[0].children[3]).to.have.own.property('name').that.is.equal('PageB2');
-      expect(tree.children[0].children[3]).to.have.own.property('isThirdParty').that.is.false;
+      expect(tree.get(0, 2).name).equals('PageB1');
+      expect(tree.get(0, 2).isThirdParty).that.is.false;
+      expect(tree.get(0, 3).name).equals('PageB2');
+      expect(tree.get(0, 3).isThirdParty).that.is.false;
     });
   });
 });

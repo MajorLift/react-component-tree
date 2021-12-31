@@ -14,12 +14,14 @@ const Sidebar = () => {
   const [treeData, setTreeData]: [TreeType[], Function] = useState();
   const [viewData, setViewData]: [TreeType[], Function] = useState();
   const [preferences, setPreferences]: [{ [key: string]: boolean }, Function] = useState();
-  const [settings, setSettings]: [SaplingSettings, Function] = useState({
-    useAlias: false,
-    appRoot: '',
-    webpackConfig: '',
-    tsConfig: '',
-  });
+  const [settings, setSettings]: [SaplingSettings, Function] = useState(
+    new SaplingSettings({
+      useAlias: false,
+      appRoot: '',
+      webpackConfig: '',
+      tsConfig: '',
+    })
+  );
   const [rootFile, setRootFile]: [string, Function] = useState();
 
   // useEffect whenever the Sidebar is rendered

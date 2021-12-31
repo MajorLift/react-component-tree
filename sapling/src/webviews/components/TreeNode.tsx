@@ -72,17 +72,16 @@ const TreeNode = ({ node, updateTreeView }: { node: TreeType; updateTreeView: Fu
   // onClick method for each node that will change the expanded/collapsed structure + send a message to the extension
   const toggleNode = () => {
     // Set state with the opposite of what is currently saved in state (expanded)
-    const newExpanded = !expanded;
-    setExpanded(newExpanded);
+    setExpanded(!expanded);
 
     // Update local tree view toggled status:
-    node.isExpanded = newExpanded;
+    node.toggleExpanded();
     updateTreeView();
 
     // Send a message to the extension on the changed checked value of the current node
     tsvscode.postMessage({
       type: 'onNodeToggle',
-      value: { id: node.id, expandedState: newExpanded },
+      value: { id: node.id },
     });
   };
 

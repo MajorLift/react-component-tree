@@ -3,6 +3,7 @@ const path = require('path');
 module.exports = {
   entry: path.resolve(__dirname, './pages/sidebar.tsx'),
   mode: 'production',
+  target: 'node',
   module: {
     rules: [
       {
